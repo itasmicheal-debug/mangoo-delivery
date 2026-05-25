@@ -95,7 +95,12 @@ export default function LandingPage() {
             <span className="visually-hidden">{menuOpen ? 'Close menu' : 'Open menu'}</span>
           </button>
 
-          <nav id="site-nav" className={`site-nav ${menuOpen ? 'site-nav--open' : ''}`} aria-label="Primary">
+          <nav
+            id="site-nav"
+            className={`site-nav ${menuOpen ? 'site-nav--open' : ''}`}
+            aria-label="Primary"
+            aria-hidden={!menuOpen}
+          >
             <ul className="site-nav__list">
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>

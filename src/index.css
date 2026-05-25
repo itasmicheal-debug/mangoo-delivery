@@ -44,7 +44,13 @@ body {
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
+
+html {
+  overflow-x: hidden;
+}
+
 
 body.nav-open {
   overflow: hidden;
@@ -72,3 +78,11 @@ button:focus-visible {
 button {
   font-family: inherit;
 }
+
+/* Reduce header height slightly on mobile to avoid overlap */
+@media (max-width: 768px) {
+  :root {
+    --header-h: 64px;
+  }
+}
+

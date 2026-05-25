@@ -2,53 +2,19 @@
 
 export const DEFAULT_SITE_SETTINGS = {
   contact: {
-    phoneDisplay: '0903 835 3163',
-    phoneE164: '+2349038353163',
-    whatsappWaMe: '2349038353163',
-    email: 'bookings@zicoclean.com',
-    footerAddress:
-      'Add your shop address or service area here so customers know where you operate.',
+    phoneDisplay: '',
+    phoneE164: '',
+    whatsappWaMe: '',
+    email: '',
+    footerAddress: '',
   },
-  whatsappPrefillMessage:
-    'Hello ZICOCLEAN LAUNDRY AND DRYCLEANING SERVICES — I would like to book / ask about pricing.',
+  whatsappPrefillMessage: '',
   pricingPlans: [
-    {
-      name: 'Essentials',
-      tagline: 'Light weekly loads',
-      price: '₦750',
-      unit: 'per kg · wash & fold',
-      features: ['Minimum 3 kg per order', 'Standard 24–48h turnaround', 'Neatly folded return'],
-      cta: 'Order on WhatsApp',
-      featured: false,
-    },
-    {
-      name: 'Home comfort',
-      tagline: 'Best value for families',
-      price: '₦680',
-      unit: 'per kg from 6 kg',
-      features: ['Pickup & delivery window', 'Sorting by fabric & colour', 'Stain check included'],
-      cta: 'Chat for a quote',
-      featured: true,
-    },
-    {
-      name: 'Care & press',
-      tagline: 'Dry clean + crisp finish',
-      price: 'from ₦1,200',
-      unit: 'shirts · suits from ₦4,500',
-      features: ['Delicates quoted with care', 'Hand finishing where needed', 'Inspection before bagging'],
-      cta: 'Send garment list',
-      featured: false,
-    },
+    { name: '', tagline: '', price: '', unit: '', features: [], cta: '', featured: false },
+    { name: '', tagline: '', price: '', unit: '', features: [], cta: '', featured: false },
+    { name: '', tagline: '', price: '', unit: '', features: [], cta: '', featured: false },
   ],
-  priceList: [
-    { label: 'Wash & fold (per kg)', value: 'from ₦750' },
-    { label: 'Iron only (shirt / blouse)', value: 'from ₦500' },
-    { label: 'Trousers / skirts pressed', value: 'from ₦400' },
-    { label: 'Bedsheet set (wash)', value: 'from ₦2,800' },
-    { label: 'Duvet (size dependent)', value: 'from ₦4,500' },
-    { label: 'Curtains (per panel)', value: 'quoted' },
-    { label: 'Express same-day / next-day', value: '+20–35%' },
-  ],
+  priceList: [],
 };
 
 function clone(obj) {

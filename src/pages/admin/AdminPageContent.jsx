@@ -1,13 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useSiteSettings } from '../settings/SiteSettingsContext';
-import {
-  clearAdminSession,
-  getAdminPin,
-  isAdminSessionUnlocked,
-  setAdminSessionUnlocked,
-} from './adminAuth';
+import { useSiteSettings } from '../../settings/SiteSettingsContext';
 import './admin.css';
+import { SITE_SETTINGS_STORAGE_KEY } from '../../settings/siteSettingsStorage';
+import { deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -68,12 +65,11 @@ function draftWithFeaturesText(settings) {
   return d;
 }
 
-export default function AdminPage() {
-  const expectedPin = getAdminPin();
-  const [unlocked, setUnlocked] = useState(() => isAdminSessionUnlocked());
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState('');
-
+/**
+ * AdminPageContent: The admin panel form for editing site settings.
+ * This component assumes the user is already authenticated (handled by ProtectedAdminPage).
+ */
+export default function AdminPageContent() {
   const { settings, commitSettings, resetToDefaults } = useSiteSettings();
   const [draft, setDraft] = useState(() => draftWithFeaturesText(settings));
   const [savedMsg, setSavedMsg] = useState('');
@@ -81,28 +77,6 @@ export default function AdminPage() {
   useEffect(() => {
     setDraft(draftWithFeaturesText(settings));
   }, [settings]);
-
-  const handleUnlock = (e) => {
-    e.preventDefault();
-    if (expectedPin != null && pinInput === expectedPin) {
-      setAdminSessionUnlocked();
-      setUnlocked(true);
-      setPinError('');
-      setPinInput('');
-    } else {
-      setPinError('Incorrect PIN. Try again.');
-    }
-  };
-
-  const handleLogout = () => {
-    clearAdminSession();
-    setUnlocked(false);
-    setPinInput('');
-    setPinError('');
-  };
-
-  const showDevPinHint =
-    process.env.NODE_ENV !== 'production' && !process.env.REACT_APP_ADMIN_PIN;
 
   const updateContact = useCallback((field, value) => {
     setDraft((prev) => ({
@@ -163,68 +137,29 @@ export default function AdminPage() {
     window.setTimeout(() => setSavedMsg(''), 4000);
   };
 
-  if (expectedPin === null) {
-    return (
-      <div className="admin">
-        <div className="admin-login">
-          <div className="admin-login__card">
-            <h1 className="admin-login__title">Admin is not available</h1>
-            <p className="admin-login__text">
-              This production build has no admin PIN configured. Add{' '}
-              <code className="admin-login__code">REACT_APP_ADMIN_PIN</code> to your environment (for example in
-              <code className="admin-login__code"> .env.production</code>
-              ), then run a new build. Use a strong secret; it is embedded at build time.
-            </p>
-            <Link className="admin__link admin-login__back" to="/">
-              ← Back to website
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleClearSavedData = async () => {
+    if (!window.confirm('Clear saved settings from this browser and remove remote settings from Firestore? This cannot be undone.')) return;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(SITE_SETTINGS_STORAGE_KEY);
+      }
+    } catch (e) {
+      // ignore
+    }
 
-  if (!unlocked) {
-    return (
-      <div className="admin">
-        <div className="admin-login">
-          <form className="admin-login__card" onSubmit={handleUnlock}>
-            <h1 className="admin-login__title">Admin sign-in</h1>
-            {showDevPinHint ? (
-              <p className="admin-login__hint">
-                Local / test default PIN: <code className="admin-login__code">0000</code> — set{' '}
-                <code className="admin-login__code">REACT_APP_ADMIN_PIN</code> in <code className="admin-login__code">.env</code> to use your own.
-              </p>
-            ) : null}
-            <label className="admin-login__label">
-              <span>PIN</span>
-              <input
-                className="admin-login__input"
-                type="password"
-                name="admin-pin"
-                autoComplete="current-password"
-                value={pinInput}
-                onChange={(e) => {
-                  setPinInput(e.target.value);
-                  setPinError('');
-                }}
-                placeholder="Enter PIN"
-              />
-            </label>
-            {pinError ? <p className="admin-login__error">{pinError}</p> : null}
-            <div className="admin-login__actions">
-              <button type="submit" className="admin__btn admin__btn--primary">
-                Unlock
-              </button>
-              <Link className="admin__link" to="/">
-                Cancel
-              </Link>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
+    try {
+      if (db) {
+        await deleteDoc(doc(db, 'site', 'settings'));
+      }
+    } catch (e) {
+      // ignore remote delete errors
+    }
+
+    // Reset UI and local state
+    resetToDefaults();
+    setSavedMsg('Cleared saved data (local + remote attempted).');
+    window.setTimeout(() => setSavedMsg(''), 4000);
+  };
 
   const waDigits = String(draft.contact.whatsappWaMe || '').replace(/\D/g, '');
 
@@ -234,19 +169,13 @@ export default function AdminPage() {
         <div className="admin__header-inner">
           <h1 className="admin__title">Site admin</h1>
           <div className="admin__header-actions">
-            <button type="button" className="admin__btn admin__btn--ghost admin__btn--compact" onClick={handleLogout}>
-              Sign out
-            </button>
             <Link className="admin__link" to="/">
               ← Back to website
             </Link>
           </div>
         </div>
         <p className="admin__lede">
-          Update pricing and contact information. Changes are stored in this browser only (
-          <code>localStorage</code>
-          ). This screen is protected by a PIN (session-only until you sign out or close the tab). Use the same
-          device/browser to see updates on the public site.
+          Update pricing and contact information. Changes are stored in this browser and synced to Firebase. This screen is protected by Firebase Authentication.
         </p>
       </header>
 
@@ -302,7 +231,7 @@ export default function AdminPage() {
                 />
               </label>
               <label className="admin__field admin__field--wide">
-                <span>Footer “Visit” text (address / service area)</span>
+                <span>Footer "Visit" text (address / service area)</span>
                 <textarea
                   rows={4}
                   value={draft.contact.footerAddress}
@@ -314,7 +243,7 @@ export default function AdminPage() {
 
           <section className="admin__section">
             <h2 className="admin__section-title">Pricing plans (3 cards)</h2>
-            <p className="admin__muted">Choose which plan shows the “Popular” ribbon.</p>
+            <p className="admin__muted">Choose which plan shows the "Popular" ribbon.</p>
             <div className="admin__plans">
               {draft.pricingPlans.map((plan, i) => (
                 <fieldset key={i} className="admin__plan-card">
@@ -406,6 +335,14 @@ export default function AdminPage() {
             </button>
             <button type="button" className="admin__btn admin__btn--ghost" onClick={handleReset}>
               Reset to defaults
+            </button>
+            <button
+              type="button"
+              className="admin__btn admin__btn--danger"
+              onClick={handleClearSavedData}
+              title="Remove saved data from this browser and Firestore"
+            >
+              Clear saved/demo data
             </button>
           </div>
         </form>

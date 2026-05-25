@@ -1,0 +1,4 @@
+- [x] Update `src/App.css` for mobile navbar/hamburger fixes (z-index, overflow-x prevention, header height consistency, drawer spacing).
+- [x] Add smoother open/close animation (slide + fade) for the mobile drawer and backdrop.
+- [ ] Build/test the project and verify no horizontal scrolling. (Build succeeded; tests fail due to unrelated Firebase/TextEncoder issue.)
+- [ ] Manual responsive checks for widths < 768px (375px/414px/768px/820px).

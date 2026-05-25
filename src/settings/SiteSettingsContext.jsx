@@ -9,6 +9,8 @@ import {
 import { DEFAULT_SITE_SETTINGS, mergeSavedSettings } from './defaultSiteSettings';
 import { loadSettingsFromStorage, persistSettings, SITE_SETTINGS_STORAGE_KEY } from './siteSettingsStorage';
 import { buildMailtoBooking, buildTelHref, buildWhatsAppHref } from './contactLinks';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const SiteSettingsContext = createContext(null);
 
@@ -18,20 +20,50 @@ export function SiteSettingsProvider({ children }) {
     return loadSettingsFromStorage();
   });
 
+  // Subscribe to real-time Firestore updates
   useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === SITE_SETTINGS_STORAGE_KEY) {
-        setSettings(loadSettingsFromStorage());
+    let mounted = true;
+    let unsubscribe = null;
+
+    async function subscribeRemote() {
+      try {
+        const ref = doc(db, 'site', 'settings');
+        unsubscribe = onSnapshot(ref, (snap) => {
+          if (mounted && snap.exists()) {
+            const remote = snap.data();
+            const merged = mergeSavedSettings(remote);
+            persistSettings(merged);
+            setSettings(merged);
+          }
+        });
+      } catch (e) {
+        // Ignore firestore errors and continue using local storage
       }
+    }
+
+    // Only attempt if db is available (firebase initialized)
+    if (db) subscribeRemote();
+    
+    return () => {
+      mounted = false;
+      if (unsubscribe) unsubscribe();
     };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const commitSettings = useCallback((next) => {
     const merged = mergeSavedSettings(next);
     persistSettings(merged);
     setSettings(merged);
+
+    // Persist to Firestore in background (best-effort)
+    (async () => {
+      try {
+        const ref = doc(db, 'site', 'settings');
+        await setDoc(ref, merged, { merge: true });
+      } catch (e) {
+        // Ignore failures; local persistence still works
+      }
+    })();
   }, []);
 
   const resetToDefaults = useCallback(() => {

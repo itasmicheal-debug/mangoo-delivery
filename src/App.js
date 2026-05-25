@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import AdminPage from './admin/AdminPage';
 import LandingPage from './pages/LandingPage';
+import ProtectedAdminPage from './pages/admin/ProtectedAdminPage';
 import { SiteSettingsProvider } from './settings/SiteSettingsContext';
 
 export default function App() {
@@ -9,7 +9,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin" element={<ProtectedAdminPage />} />
         </Routes>
       </BrowserRouter>
     </SiteSettingsProvider>
